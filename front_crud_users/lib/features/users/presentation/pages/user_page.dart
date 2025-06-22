@@ -21,6 +21,7 @@ class _UserPageState extends State<UserPage> {
   final _passwordController = TextEditingController();
 
   late final UserRepositoryImpl _userRepositoryImpl;
+  String? _editingOriginalEmail;
 
   @override
   void initState() {
@@ -33,32 +34,102 @@ class _UserPageState extends State<UserPage> {
   Future<void> _loadUsers() async {
     final users = await _userRepositoryImpl.getUsers();
     setState(() {
+      _users.clear();
       _users.addAll(users);
     });
   }
 
-  void _addUser() {
+  Future<void> _addUser() async {
     if (_formKey.currentState!.validate()) {
+      final newUser = User(
+        username: _usernameController.text,
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+
+      await _userRepositoryImpl.createUser(newUser);
+      _usernameController.clear();
+      _emailController.clear();
+      _passwordController.clear();
       setState(() {
-        _userRepositoryImpl.createUser(User(
-          username: _usernameController.text,
-          email: _emailController.text,
-          password: _passwordController.text,
-        ));
-        _usernameController.clear();
-        _emailController.clear();
-        _passwordController.clear();
         _users.clear();
-        sleep(0.5 as Duration);
-        _loadUsers();
       });
+      await _loadUsers();
     }
   }
 
-  void _deleteUser(String email) {
-    setState(() {
-      _users.removeWhere((user) => user.email == email);
-    });
+  Future<void> _editUser(String email, User user) async {
+    _editingOriginalEmail = user.email;
+    _usernameController.text = user.username;
+    _emailController.text = user.email;
+    _passwordController.text = user.password;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Editar Usuario'),
+          content: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: _usernameController,
+                  decoration:
+                      const InputDecoration(labelText: 'Nombre de usuario'),
+                  validator: (value) =>
+                      value!.isEmpty ? 'Campo requerido' : null,
+                ),
+                TextFormField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(labelText: 'Email'),
+                  validator: (value) =>
+                      value!.isEmpty ? 'Campo requerido' : null,
+                ),
+                TextFormField(
+                  controller: _passwordController,
+                  decoration: const InputDecoration(labelText: 'Contraseña'),
+                  obscureText: true,
+                  validator: (value) =>
+                      value!.length < 6 ? 'Mínimo 6 caracteres' : null,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (_formKey.currentState!.validate()) {
+                  print("Email anterior, \\$_editingOriginalEmail");
+                  final newUpdateUser = User(
+                    username: _usernameController.text,
+                    email: _emailController.text,
+                    password: _passwordController.text,
+                  );
+                  await _userRepositoryImpl.updateUser(
+                      _editingOriginalEmail!, newUpdateUser);
+                  _usernameController.clear();
+                  _emailController.clear();
+                  _passwordController.clear();
+                  Navigator.of(context).pop();
+                  await _loadUsers();
+                }
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteUser(String email) async {
+    await _userRepositoryImpl.deleteUser(email);
+    await _loadUsers();
   }
 
   @override
@@ -103,20 +174,33 @@ class _UserPageState extends State<UserPage> {
             ),
             const SizedBox(height: 20),
             Expanded(
-              child: ListView.builder(
-                itemCount: _users.length,
-                itemBuilder: (context, index) {
-                  final user = _users[index];
-                  return ListTile(
-                    title: Text(user.username),
-                    subtitle: Text(user.email),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete),
-                      onPressed: () => _deleteUser(user.email),
+              child: _users.isEmpty
+                  ? const Center(child: Text('No hay usuarios para mostrar'))
+                  : ListView.builder(
+                      itemCount: _users.length,
+                      itemBuilder: (context, index) {
+                        final user = _users[index];
+                        return ListTile(
+                          title: Text(user.username),
+                          subtitle: Text(user.email),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit,
+                                    color: Colors.orange),
+                                onPressed: () => _editUser(user.email, user),
+                              ),
+                              IconButton(
+                                icon:
+                                    const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () => _deleteUser(user.email),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
           ],
         ),
