@@ -2,10 +2,10 @@ import 'package:front_crud_users/features/users/domain/entities/user.dart';
 
 class UserModel extends User {
   UserModel({
-    required String username,
-    required String email,
-    required String password,
-  }) : super(username: username, email: email, password: password);
+    required super.username,
+    required super.email,
+    required super.password,
+  });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(

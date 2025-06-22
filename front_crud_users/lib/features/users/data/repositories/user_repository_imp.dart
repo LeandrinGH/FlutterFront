@@ -20,11 +20,13 @@ class UserRepositoryImpl implements UserRepository {
   @override
   Future<void> updateUser(User user) async {
     final index = _users.indexWhere((u) => u.email == user.email);
-    if (index != -1) _users[index] = UserModel.fromJson({
-      'username': user.username,
-      'email': user.email,
-      'password': user.password,
-    });
+    if (index != -1) {
+      _users[index] = UserModel(
+        username: user.username,
+        email: user.email,
+        password: user.password,
+      );
+    }
   }
 
   @override
