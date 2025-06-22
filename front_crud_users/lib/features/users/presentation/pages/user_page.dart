@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:front_crud_users/features/users/data/datasources/user_remote_datasource.dart';
 import 'package:front_crud_users/features/users/data/repositories/user_repository_imp.dart';
@@ -38,7 +40,7 @@ class _UserPageState extends State<UserPage> {
   void _addUser() {
     if (_formKey.currentState!.validate()) {
       setState(() {
-        _users.add(User(
+        _userRepositoryImpl.createUser(User(
           username: _usernameController.text,
           email: _emailController.text,
           password: _passwordController.text,
@@ -46,6 +48,9 @@ class _UserPageState extends State<UserPage> {
         _usernameController.clear();
         _emailController.clear();
         _passwordController.clear();
+        _users.clear();
+        sleep(0.5 as Duration);
+        _loadUsers();
       });
     }
   }
