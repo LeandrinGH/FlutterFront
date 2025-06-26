@@ -59,17 +59,18 @@ class _UserPageState extends State<UserPage> {
   }
 
   Future<void> _editUser(String email, User user) async {
+    final _editFormKey = GlobalKey<FormState>();
     _editingOriginalEmail = user.email;
     _usernameController.text = user.username;
     _emailController.text = user.email;
     _passwordController.text = user.password;
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Editar Usuario'),
           content: Form(
-            key: _formKey,
+            key: _editFormKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -98,12 +99,17 @@ class _UserPageState extends State<UserPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                _emailController.clear();
+                _passwordController.clear();
+                _usernameController.clear();
+                Navigator.of(dialogContext).pop();
+              },
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
               onPressed: () async {
-                if (_formKey.currentState!.validate()) {
+                if (_editFormKey.currentState!.validate()) {
                   print("Email anterior, \\$_editingOriginalEmail");
                   final newUpdateUser = User(
                     username: _usernameController.text,
@@ -115,7 +121,7 @@ class _UserPageState extends State<UserPage> {
                   _usernameController.clear();
                   _emailController.clear();
                   _passwordController.clear();
-                  Navigator.of(context).pop();
+                  Navigator.of(dialogContext).pop();
                   await _loadUsers();
                 }
               },
